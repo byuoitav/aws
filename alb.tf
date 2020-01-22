@@ -6,7 +6,7 @@ resource "aws_lb" "prd_alb" {
   subnets            = module.acs.public_subnet_ids
   security_groups    = ["${aws_security_group.prd_alb_sg.id}"]
 
-  enable_deletion_protection = false // while i test :) 
+  enable_deletion_protection = true
 
   tags = {
     env              = "prd"
