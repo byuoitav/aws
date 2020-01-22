@@ -91,12 +91,12 @@ resource "aws_eks_node_group" "eks_node_group" {
 
   ami_type       = "AL2_x86_64"
   disk_size      = "20"
-  instance_types = ["t3.medium"]
+  instance_types = ["t3.large"]
 
   scaling_config {
-    desired_size = 2
-    max_size     = 4
-    min_size     = 1
+    desired_size = 3
+    max_size     = 6
+    min_size     = 2
   }
 
   depends_on = [
