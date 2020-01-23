@@ -98,7 +98,7 @@ resource "kubernetes_stateful_set" "couchdb" {
 
   spec {
     service_name = "couch-service"
-    replicas     = 1
+    replicas     = 3
 
     selector {
       match_labels = {
