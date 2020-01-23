@@ -20,9 +20,9 @@ resource "aws_ebs_volume" "couchdb_ebs_2" {
 // k8s persistant volumes
 resource "kubernetes_persistent_volume" "couchdb_pv_0" {
   metadata {
-    name = "couch-vol-0"
+    name = "couch-pv-0"
     labels = {
-      volume = "couch-volume"
+      volume = "couch-pv"
     }
   }
 
@@ -44,9 +44,9 @@ resource "kubernetes_persistent_volume" "couchdb_pv_0" {
 
 resource "kubernetes_persistent_volume" "couchdb_pv_1" {
   metadata {
-    name = "couch-vol-1"
+    name = "couch-pv-1"
     labels = {
-      volume = "couch-volume"
+      volume = "couch-pv"
     }
   }
 
@@ -68,9 +68,9 @@ resource "kubernetes_persistent_volume" "couchdb_pv_1" {
 
 resource "kubernetes_persistent_volume" "couchdb_pv_2" {
   metadata {
-    name = "couch-vol-2"
+    name = "couch-pv-2"
     labels = {
-      volume = "couch-volume"
+      volume = "couch-pv"
     }
   }
 
@@ -94,6 +94,8 @@ resource "kubernetes_persistent_volume" "couchdb_pv_2" {
 resource "kubernetes_stateful_set" "couchdb" {
   metadata {
     name = "couchdb"
+
+    annotations = {}
   }
 
   spec {
@@ -102,15 +104,17 @@ resource "kubernetes_stateful_set" "couchdb" {
 
     selector {
       match_labels = {
-        k8s-app = "couch"
+        app = "couch"
       }
     }
 
     template {
       metadata {
         labels = {
-          k8s-app = "couch" // pod label
+          app = "couch" // pod label
         }
+
+        annotations = {}
       }
 
       spec {
@@ -124,7 +128,7 @@ resource "kubernetes_stateful_set" "couchdb" {
           }
 
           volume_mount {
-            name       = "couch-pv"
+            name       = "data"
             mount_path = "/opt/couchdb/data"
           }
 
@@ -145,7 +149,7 @@ resource "kubernetes_stateful_set" "couchdb" {
 
     volume_claim_template {
       metadata {
-        name = "couch-pv"
+        name = "couch-volume-claim"
       }
 
       spec {
@@ -153,7 +157,7 @@ resource "kubernetes_stateful_set" "couchdb" {
 
         selector {
           match_labels = {
-            volume = "couch-volume"
+            volume = "couch-pv"
           }
         }
 
