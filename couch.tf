@@ -1,4 +1,10 @@
 // ebs blocks
+resource "aws_ebs_volume" "couchdb_ebs_0" {
+  availability_zone = "us-west-2b"
+  size              = 40
+  encrypted         = true
+}
+
 resource "aws_ebs_volume" "couchdb_ebs_1" {
   availability_zone = "us-west-2b"
   size              = 40
@@ -11,13 +17,31 @@ resource "aws_ebs_volume" "couchdb_ebs_2" {
   encrypted         = true
 }
 
-resource "aws_ebs_volume" "couchdb_ebs_3" {
-  availability_zone = "us-west-2b"
-  size              = 40
-  encrypted         = true
+// k8s persistant volumes
+resource "kubernetes_persistent_volume" "couchdb_pv_0" {
+  metadata {
+    name = "couch-vol-0"
+    labels = {
+      volume = "couch-volume"
+    }
+  }
+
+  spec {
+    capacity = {
+      storage = "40Gi"
+    }
+
+    access_modes = ["ReadWriteOnce"]
+
+    persistent_volume_source {
+      aws_elastic_block_store {
+        volume_id = aws_ebs_volume.couchdb_ebs_0.id
+        fs_type   = "ext4"
+      }
+    }
+  }
 }
 
-// k8s persistant volumes
 resource "kubernetes_persistent_volume" "couchdb_pv_1" {
   metadata {
     name = "couch-vol-1"
@@ -60,30 +84,6 @@ resource "kubernetes_persistent_volume" "couchdb_pv_2" {
     persistent_volume_source {
       aws_elastic_block_store {
         volume_id = aws_ebs_volume.couchdb_ebs_2.id
-        fs_type   = "ext4"
-      }
-    }
-  }
-}
-
-resource "kubernetes_persistent_volume" "couchdb_pv_3" {
-  metadata {
-    name = "couch-vol-3"
-    labels = {
-      volume = "couch-volume"
-    }
-  }
-
-  spec {
-    capacity = {
-      storage = "40Gi"
-    }
-
-    access_modes = ["ReadWriteOnce"]
-
-    persistent_volume_source {
-      aws_elastic_block_store {
-        volume_id = aws_ebs_volume.couchdb_ebs_3.id
         fs_type   = "ext4"
       }
     }
