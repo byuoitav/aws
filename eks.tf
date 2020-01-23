@@ -72,7 +72,6 @@ resource "aws_iam_role_policy_attachment" "eks_node_group-AmazonEC2ContainerRegi
   role       = aws_iam_role.eks_node_group.name
 }
 
-// eks nodes
 resource "aws_eks_node_group" "eks_node_group" {
   cluster_name    = aws_eks_cluster.eks.name
   node_group_name = "eks-node-group"
