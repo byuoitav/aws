@@ -79,13 +79,13 @@ resource "aws_eks_node_group" "eks_node_group" {
   subnet_ids      = module.acs.private_subnet_ids
 
   ami_type       = "AL2_x86_64"
-  disk_size      = "20"
+  disk_size      = "10"
   instance_types = ["t3.large"]
 
   scaling_config {
-    desired_size = 3
+    desired_size = 4
     max_size     = 6
-    min_size     = 2
+    min_size     = 4
   }
 
   depends_on = [

@@ -104,14 +104,14 @@ resource "kubernetes_stateful_set" "couchdb" {
 
     selector {
       match_labels = {
-        app = "couch"
+        app = "couchdb"
       }
     }
 
     template {
       metadata {
         labels = {
-          app = "couch" // pod label
+          app = "couchdb" // pod label
         }
 
         annotations = {}
@@ -124,11 +124,36 @@ resource "kubernetes_stateful_set" "couchdb" {
           image_pull_policy = "IfNotPresent"
 
           port {
+            name           = "couchdb"
             container_port = 5984
           }
 
+          port {
+            name           = "epmd"
+            container_port = 4369
+          }
+
+          liveness_probe {
+            http_get {
+              path = "/"
+              port = 5984
+            }
+          }
+
+          readiness_probe {
+            http_get {
+              path = "/_up"
+              port = 5984
+            }
+          }
+
           volume_mount {
-            name       = "data"
+            name       = "config-storage"
+            mount_path = "/opt/couchdb/etc/default.d"
+          }
+
+          volume_mount {
+            name       = "database-storage"
             mount_path = "/opt/couchdb/data"
           }
 
@@ -149,7 +174,11 @@ resource "kubernetes_stateful_set" "couchdb" {
 
     volume_claim_template {
       metadata {
-        name = "couch-volume-claim"
+        name = "storage"
+
+        labels = {
+          app = "couchdb"
+        }
       }
 
       spec {

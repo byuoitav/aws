@@ -1,3 +1,4 @@
+/*
 // the production load balancer
 resource "aws_lb" "prd_alb" {
   name               = "production-alb"
@@ -91,3 +92,4 @@ resource "aws_security_group_rule" "outbound_internet_access" {
   protocol    = "-1" // allow all protocols for outbound traffic
   cidr_blocks = ["0.0.0.0/0"]
 }
+*/
