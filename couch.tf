@@ -1,105 +1,32 @@
-// ebs blocks
-resource "aws_ebs_volume" "couchdb_ebs_0" {
-  availability_zone = "us-west-2b"
-  size              = 40
-  encrypted         = true
-}
-
-resource "aws_ebs_volume" "couchdb_ebs_1" {
-  availability_zone = "us-west-2b"
-  size              = 40
-  encrypted         = true
-}
-
-resource "aws_ebs_volume" "couchdb_ebs_2" {
-  availability_zone = "us-west-2b"
-  size              = 40
-  encrypted         = true
-}
-
-// k8s persistant volumes
-resource "kubernetes_persistent_volume" "couchdb_pv_0" {
+// k8s storage class for aws
+resource "kubernetes_storage_class" "ebs_couch" {
   metadata {
-    name = "couch-pv-0"
-    labels = {
-      volume = "couch-pv"
-    }
+    name = "ebs-couch"
   }
 
-  spec {
-    capacity = {
-      storage = "40Gi"
-    }
+  storage_provisioner    = "kubernetes.io/aws-ebs"
+  reclaim_policy         = "Retain"
+  allow_volume_expansion = true
 
-    access_modes = ["ReadWriteOnce"]
-
-    persistent_volume_source {
-      aws_elastic_block_store {
-        volume_id = aws_ebs_volume.couchdb_ebs_0.id
-        fs_type   = "ext4"
-      }
-    }
+  parameters = {
+    type      = "gp2"
+    fsType    = "ext4"
+    encrypted = "true"
   }
 }
 
-resource "kubernetes_persistent_volume" "couchdb_pv_1" {
-  metadata {
-    name = "couch-pv-1"
-    labels = {
-      volume = "couch-pv"
-    }
-  }
-
-  spec {
-    capacity = {
-      storage = "40Gi"
-    }
-
-    access_modes = ["ReadWriteOnce"]
-
-    persistent_volume_source {
-      aws_elastic_block_store {
-        volume_id = aws_ebs_volume.couchdb_ebs_1.id
-        fs_type   = "ext4"
-      }
-    }
-  }
-}
-
-resource "kubernetes_persistent_volume" "couchdb_pv_2" {
-  metadata {
-    name = "couch-pv-2"
-    labels = {
-      volume = "couch-pv"
-    }
-  }
-
-  spec {
-    capacity = {
-      storage = "40Gi"
-    }
-
-    access_modes = ["ReadWriteOnce"]
-
-    persistent_volume_source {
-      aws_elastic_block_store {
-        volume_id = aws_ebs_volume.couchdb_ebs_2.id
-        fs_type   = "ext4"
-      }
-    }
-  }
-}
-
-// k8s stateful set
+// k8s stateful set for couch
 resource "kubernetes_stateful_set" "couchdb" {
   metadata {
     name = "couchdb"
 
-    annotations = {}
+    labels = {
+      app = "couchdb"
+    }
   }
 
   spec {
-    service_name = "couch-service"
+    service_name = "couchdb"
     replicas     = 3
 
     selector {
@@ -111,17 +38,15 @@ resource "kubernetes_stateful_set" "couchdb" {
     template {
       metadata {
         labels = {
-          app = "couchdb" // pod label
+          app = "couchdb"
         }
-
-        annotations = {}
       }
 
       spec {
         container {
           name              = "couchdb"
           image             = "couchdb:2.3.1"
-          image_pull_policy = "IfNotPresent"
+          image_pull_policy = "Always"
 
           port {
             name           = "couchdb"
@@ -131,6 +56,22 @@ resource "kubernetes_stateful_set" "couchdb" {
           port {
             name           = "epmd"
             container_port = 4369
+          }
+
+          port {
+            // what is this lol
+            container_port = 9100
+          }
+
+          resources {
+            requests {
+              cpu    = "500m"
+              memory = "500Mi"
+            }
+            limits {
+              cpu    = "1"
+              memory = "1Gi"
+            }
           }
 
           liveness_probe {
@@ -156,17 +97,22 @@ resource "kubernetes_stateful_set" "couchdb" {
             name       = "database-storage"
             mount_path = "/opt/couchdb/data"
           }
+        }
+      }
+    }
 
-          resources {
-            limits {
-              cpu    = "1"
-              memory = "1Gi"
-            }
+    volume_claim_template {
+      metadata {
+        name = "config-storage"
+      }
 
-            requests {
-              cpu    = ".5"
-              memory = "500Mi"
-            }
+      spec {
+        access_modes       = ["ReadWriteOnce"]
+        storage_class_name = kubernetes_storage_class.ebs_couch.metadata.0.name
+
+        resources {
+          requests = {
+            storage = "1Gi"
           }
         }
       }
@@ -174,25 +120,16 @@ resource "kubernetes_stateful_set" "couchdb" {
 
     volume_claim_template {
       metadata {
-        name = "storage"
-
-        labels = {
-          app = "couchdb"
-        }
+        name = "database-storage"
       }
 
       spec {
-        access_modes = ["ReadWriteOnce"]
-
-        selector {
-          match_labels = {
-            volume = "couch-pv"
-          }
-        }
+        access_modes       = ["ReadWriteOnce"]
+        storage_class_name = kubernetes_storage_class.ebs_couch.metadata.0.name
 
         resources {
           requests = {
-            storage = "40Gi"
+            storage = "30Gi"
           }
         }
       }
