@@ -5,7 +5,7 @@ resource "kubernetes_storage_class" "ebs_couch" {
   }
 
   storage_provisioner    = "kubernetes.io/aws-ebs"
-  reclaim_policy         = "Retain"
+  reclaim_policy         = "Delete" // probably Retain
   allow_volume_expansion = true
 
   parameters = {
@@ -54,12 +54,13 @@ resource "kubernetes_stateful_set" "couchdb" {
           }
 
           port {
+            // "discovery" port
             name           = "epmd"
             container_port = 4369
           }
 
           port {
-            // what is this lol
+            // for erlang communication
             container_port = 9100
           }
 
@@ -72,6 +73,22 @@ resource "kubernetes_stateful_set" "couchdb" {
               cpu    = "1"
               memory = "1Gi"
             }
+          }
+
+          // environment vars
+          env {
+            name  = "COUCHDB_USER"
+            value = "admin"
+          }
+
+          env {
+            name  = "COUCHDB_PASSWORD"
+            value = "password"
+          }
+
+          env {
+            name  = "COUCHDB_SECRET"
+            value = "topSecret"
           }
 
           liveness_probe {
@@ -90,7 +107,7 @@ resource "kubernetes_stateful_set" "couchdb" {
 
           volume_mount {
             name       = "config-storage"
-            mount_path = "/opt/couchdb/etc/default.d"
+            mount_path = "/opt/couchdb/etc/local.d"
           }
 
           volume_mount {
@@ -112,7 +129,7 @@ resource "kubernetes_stateful_set" "couchdb" {
 
         resources {
           requests = {
-            storage = "1Gi"
+            storage = "256Mi"
           }
         }
       }
