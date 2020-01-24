@@ -153,3 +153,48 @@ resource "kubernetes_stateful_set" "couchdb" {
     }
   }
 }
+
+// node port service
+resource "kubernetes_service" "couchdb" {
+  metadata {
+    name = "couch-nodep"
+  }
+
+  spec {
+    type = "NodePort"
+    port {
+      port        = 80
+      target_port = 5984
+    }
+
+    selector = {
+      app = "couch"
+    }
+  }
+}
+
+// load balancer for couch
+resource "kubernetes_ingress" "couchdb" {
+  metadata {
+    name = "couchdb-ingress"
+
+    annotations = {
+      "kubernetes.io/ingress.class" = "alb"
+    }
+  }
+
+  spec {
+    rule {
+      host = "couch.av.byu.edu"
+
+      http {
+        path {
+          backend {
+            service_name = "couchdb"
+            service_port = "80"
+          }
+        }
+      }
+    }
+  }
+}

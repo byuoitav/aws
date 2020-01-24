@@ -94,3 +94,108 @@ resource "aws_eks_node_group" "eks_node_group" {
     aws_iam_role_policy_attachment.eks_node_group-AmazonEC2ContainerRegistryReadOnly,
   ]
 }
+
+locals {
+  alb_ctl_name = "alb-ingress-controller"
+}
+
+// cluster role for alb ingress controller (from https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/rbac-role.yaml)
+resource "kubernetes_cluster_role" "alb_ingress_controller" {
+  metadata {
+    name = local.alb_ctl_name
+    labels = {
+      "app.kubernetes.io/name" = local.alb_ctl_name
+    }
+  }
+
+  rule {
+    api_groups = ["", "extensions"]
+    resources  = ["configmaps", "endpoints", "events", "ingresses", "ingresses/status", "services"]
+    verbs      = ["create", "get", "list", "update", "watch", "patch"]
+  }
+
+  rule {
+    api_groups = ["", "extensions"]
+    resources  = ["nodes", "pods", "secrets", "services", "namespaces"]
+    verbs      = ["get", "list", "watch"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding" "alb_ingress_controller" {
+  metadata {
+    name = local.alb_ctl_name
+    labels = {
+      "app.kubernetes.io/name" = local.alb_ctl_name
+    }
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.alb_ingress_controller.metadata.0.name
+  }
+
+  subject {
+    name      = local.alb_ctl_name
+    kind      = "ServiceAccount"
+    namespace = "kube-system"
+  }
+}
+
+resource "kubernetes_service_account" "alb_ingress_controller" {
+  metadata {
+    name      = local.alb_ctl_name
+    namespace = "kube-system"
+    labels = {
+      "app.kubernetes.io/name" = local.alb_ctl_name
+    }
+  }
+}
+
+// aws alb ingress controller deployment (from https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/v1.1.5/docs/examples/alb-ingress-controller.yaml)
+resource "kubernetes_deployment" "alb_ingress_controller" {
+  metadata {
+    name      = local.alb_ctl_name
+    namespace = "kube-system"
+    labels = {
+      "app.kubernetes.io/name" = local.alb_ctl_name
+    }
+  }
+
+  spec {
+    selector {
+      match_labels = {
+        "app.kubernetes.io/name" = local.alb_ctl_name
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          "app.kubernetes.io/name" = local.alb_ctl_name
+        }
+      }
+
+      spec {
+        container {
+          name  = local.alb_ctl_name
+          image = "docker.io/amazon/aws-alb-ingress-controller:v1.1.5"
+
+          args = ["--cluster-name=${aws_eks_cluster.eks.name}"]
+
+          env {
+            name  = "AWS_ACCESS_KEY_ID"
+            value = "" // TODO IAM user
+          }
+
+          env {
+            name  = "AWS_SECRET_ACCESS_KEY"
+            value = ""
+          }
+        }
+
+        service_account_name = local.alb_ctl_name
+      }
+    }
+  }
+}
