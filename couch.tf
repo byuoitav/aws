@@ -155,6 +155,7 @@ resource "kubernetes_stateful_set" "couchdb" {
 }
 
 // node port service
+/*
 resource "kubernetes_service" "couchdb" {
   metadata {
     name = "couch-nodep"
@@ -198,3 +199,4 @@ resource "kubernetes_ingress" "couchdb" {
     }
   }
 }
+*/

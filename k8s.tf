@@ -1,5 +1,5 @@
 provider "kubernetes" {
-  host = aws_eks_cluster.eks.endpoint
+  host = aws_eks_cluster.av.endpoint
 
-  client_certificate = aws_eks_cluster.eks.certificate_authority.0.data
+  client_certificate = aws_eks_cluster.av.certificate_authority.0.data
 }
