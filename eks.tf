@@ -1,7 +1,6 @@
 // iam junk for eks cluster
 resource "aws_iam_role" "eks_cluster" {
   name = "eks-cluster-role"
-  // permissions_boundary = "arn:aws:iam::586877430255:policy/iamRolePermissionBoundary"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -26,20 +25,49 @@ resource "aws_iam_role_policy_attachment" "eks_cluster-AmazonEKSServicePolicy" {
 }
 
 // iam junk for eks nodes
-resource "aws_iam_role" "eks_node_group" {
-  name = "eks-node-group-role"
-  // permissions_boundary = "arn:aws:iam::586877430255:policy/iamRolePermissionBoundary"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-    }]
-  })
+// get the thumbprint for oidc 
+// hopefully there is a better way to do this soon - https://github.com/terraform-providers/terraform-provider-aws/issues/10104
+data "external" "thumbprint" {
+  program = ["./thumbprint.sh", "us-west-2"]
+}
+
+// enable iam roles for service accounts
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.external.thumbprint.result.thumbprint]
+  url             = aws_eks_cluster.av.identity.0.oidc.0.issuer
+}
+
+data "aws_iam_policy_document" "eks_assume_role_policy" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    // this was making it not work
+    /* 
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
+      values = [
+        "system:serviceaccount:external-dns:aws-node",
+        "system:serviceaccount:external-dns-viewer:aws-node",
+        "system:serviceaccount:*:aws-node",
+        "system:serviceaccount:default:aws-node"
+      ]
+    }
+		*/
+
+    principals {
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+      type        = "Federated"
+    }
+  }
+}
+
+resource "aws_iam_role" "eks_node_group" {
+  name               = "eks-node-group-role"
+  assume_role_policy = data.aws_iam_policy_document.eks_assume_role_policy.json
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_group-AmazonEKSWorkerNodePolicy" {
@@ -70,33 +98,6 @@ resource "aws_eks_cluster" "av" {
     aws_iam_role_policy_attachment.eks_cluster-AmazonEKSClusterPolicy,
     aws_iam_role_policy_attachment.eks_cluster-AmazonEKSServicePolicy
   ]
-}
-
-// enable iam roles for service accounts
-resource "aws_iam_openid_connect_provider" "eks" {
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = []
-  url             = aws_eks_cluster.av.identity.0.oidc.0.issuer
-}
-
-data "aws_caller_identity" "current" {}
-
-data "aws_iam_policy_document" "eks_assume_role_policy" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-    effect  = "Allow"
-
-    condition {
-      test     = "StringEquals"
-      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:kube-system:aws-node"]
-    }
-
-    principals {
-      identifiers = ["${aws_iam_openid_connect_provider.eks.arn}"]
-      type        = "Federated"
-    }
-  }
 }
 
 // create the node group
