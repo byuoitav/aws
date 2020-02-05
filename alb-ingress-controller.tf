@@ -1,15 +1,21 @@
-/*
 module "alb-ingress-controller" {
   source  = "iplabs/alb-ingress-controller/kubernetes"
-  version = "2.0.0"
+  version = "3.0.1"
 
-  aws_iam_path_prefix = "/"
-  aws_region_name     = "us-west-2"
-  aws_vpc_id          = module.acs.vpc.id
-  k8s_cluster_name    = aws_eks_cluster.av.name
-  k8s_namespace       = "default"
+  // required
+  aws_region_name  = "us-west-2"
+  aws_vpc_id       = module.acs.vpc.id
+  k8s_cluster_name = aws_eks_cluster.av.name
+
+  // optional
+  aws_iam_path_prefix = "/" // it should be required, but isn't marked as such
+  k8s_cluster_type    = "eks"
+  aws_tags = {
+    // TODO
+  }
 }
 
+/*
 resource "aws_iam_policy" "ALBIngressControllerPolicy" {
   name        = "eks-node-group-alb-ingress-controller"
   path        = "/"

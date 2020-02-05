@@ -26,7 +26,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster-AmazonEKSServicePolicy" {
 
 // iam junk for eks nodes
 
-// get the thumbprint for oidc 
+// get the thumbprint for oidc
 // hopefully there is a better way to do this soon - https://github.com/terraform-providers/terraform-provider-aws/issues/10104
 data "external" "thumbprint" {
   program = ["./thumbprint.sh", "us-west-2"]
@@ -48,8 +48,7 @@ data "aws_iam_policy_document" "eks_assume_role_policy" {
       test     = "StringEquals"
       variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
       values = [
-        "system:serviceaccount:default:external-dns",
-        "system:serviceaccount:default:aws-alb-ingress-controller"
+        "system:serviceaccount:default:external-dns"
       ]
     }
 
