@@ -1,4 +1,5 @@
 // k8s storage class for aws
+/*
 resource "kubernetes_storage_class" "ebs_couch" {
   metadata {
     name = "ebs-couch"
@@ -154,45 +155,54 @@ resource "kubernetes_stateful_set" "couchdb" {
   }
 }
 
-// node port service
-/*
-resource "kubernetes_service" "couchdb" {
+// create service for cluster-local access
+resource "kubernetes_service" "couchdb_cluster_ip" {
   metadata {
-    name = "couch-nodep"
+    name      = "couchdb-cluster-ip"
+    namespace = "default"
+    labels = {
+      app = "couchdb"
+    }
   }
 
   spec {
-    type = "NodePort"
+    type = "ClusterIP"
     port {
-      port        = 80
+      port        = 5984
       target_port = 5984
+      protocol    = "TCP"
     }
 
     selector = {
-      app = "couch"
+      app = "couchdb"
     }
   }
 }
 
-// load balancer for couch
+// create ingress (loadbalancer)
 resource "kubernetes_ingress" "couchdb" {
   metadata {
-    name = "couchdb-ingress"
-
+    name      = "couchdb"
+    namespace = "default"
     annotations = {
-      "kubernetes.io/ingress.class" = "alb"
+      "kubernetes.io/ingress.class"           = "alb"
+      "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type" = "ip"
+      "alb.ingress.kubernetes.io/subnets"     = join(",", module.acs.public_subnet_ids)
+      "alb.ingress.kubernetes.io/tags"        = "env=prd,data-sensitivity=internal,repo=https://github.com/byuoitav/aws"
     }
   }
 
   spec {
     rule {
-      host = "couch.av.byu.edu"
+      host = "db.av.byu.edu"
 
       http {
         path {
+          path = "/"
           backend {
             service_name = "couchdb"
-            service_port = "80"
+            service_port = 5984
           }
         }
       }

@@ -44,23 +44,27 @@ data "aws_iam_policy_document" "eks_assume_role_policy" {
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
-    // this was making it not work
-    /* 
     condition {
       test     = "StringEquals"
       variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
       values = [
-        "system:serviceaccount:external-dns:aws-node",
-        "system:serviceaccount:external-dns-viewer:aws-node",
-        "system:serviceaccount:*:aws-node",
-        "system:serviceaccount:default:aws-node"
+        "system:serviceaccount:default:external-dns",
+        "system:serviceaccount:default:aws-alb-ingress-controller"
       ]
     }
-		*/
 
     principals {
       identifiers = [aws_iam_openid_connect_provider.eks.arn]
       type        = "Federated"
+    }
+  }
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      identifiers = ["ec2.amazonaws.com"]
+      type        = "Service"
     }
   }
 }
@@ -101,20 +105,20 @@ resource "aws_eks_cluster" "av" {
 }
 
 // create the node group
-resource "aws_eks_node_group" "eks_node_group" {
+resource "aws_eks_node_group" "av_node_group" {
   cluster_name    = aws_eks_cluster.av.name
-  node_group_name = "eks-node-group"
+  node_group_name = "av-node-group"
   node_role_arn   = aws_iam_role.eks_node_group.arn
   subnet_ids      = module.acs.private_subnet_ids
 
   ami_type       = "AL2_x86_64"
   disk_size      = "10"
-  instance_types = ["t3.large"]
+  instance_types = ["m5.large"]
 
   scaling_config {
-    desired_size = 4
+    desired_size = 3
     max_size     = 6
-    min_size     = 4
+    min_size     = 3
   }
 
   depends_on = [

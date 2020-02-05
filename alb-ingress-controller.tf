@@ -1,11 +1,13 @@
+/*
 module "alb-ingress-controller" {
   source  = "iplabs/alb-ingress-controller/kubernetes"
   version = "2.0.0"
 
-  aws_iam_path_prefix = "/eks/av/"
+  aws_iam_path_prefix = "/"
   aws_region_name     = "us-west-2"
   aws_vpc_id          = module.acs.vpc.id
   k8s_cluster_name    = aws_eks_cluster.av.name
+  k8s_namespace       = "default"
 }
 
 resource "aws_iam_policy" "ALBIngressControllerPolicy" {
@@ -20,13 +22,7 @@ resource "aws_iam_policy" "ALBIngressControllerPolicy" {
         Effect = "Allow"
         Action = [
           "iam:ListServerCertificates",
-          "acm:ListCertificates"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
+          "acm:ListCertificates",
           "route53:ListHostedZones",
           "route53:ListResourceRecordSets"
         ]
@@ -54,6 +50,8 @@ resource "kubernetes_service_account" "external_dns" {
       "eks.amazonaws.com/role-arn" = aws_iam_role.eks_node_group.arn
     }
   }
+
+  automount_service_account_token = true
 }
 
 resource "kubernetes_cluster_role" "external_dns" {
@@ -92,15 +90,15 @@ resource "kubernetes_cluster_role_binding" "external_dns" {
   }
 
   role_ref {
-    kind      = "ClusterRole"
     api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
     name      = kubernetes_cluster_role.external_dns.metadata.0.name
   }
 
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_cluster_role.external_dns.metadata.0.name
-    namespace = "default"
+    name      = kubernetes_service_account.external_dns.metadata.0.name
+    namespace = kubernetes_service_account.external_dns.metadata.0.namespace
   }
 }
 
@@ -177,3 +175,4 @@ resource "kubernetes_deployment" "external_dns" {
     update = "3m"
   }
 }
+*/
