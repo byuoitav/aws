@@ -14,7 +14,7 @@ resource "kubernetes_storage_class" "ebs_couch" {
   }
 
   storage_provisioner    = "kubernetes.io/aws-ebs"
-  reclaim_policy         = "Delete" // probably Retain
+  reclaim_policy         = "Retain"
   allow_volume_expansion = true
 
   parameters = {
@@ -225,8 +225,6 @@ resource "kubernetes_ingress" "couchdb" {
 
       http {
         path {
-          path = "/"
-
           backend {
             service_name = local.couch_name
             service_port = 5984
