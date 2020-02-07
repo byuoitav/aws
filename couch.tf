@@ -1,8 +1,16 @@
+locals {
+  couch_name = "couchdb"
+}
+
 // k8s storage class for aws
-/*
 resource "kubernetes_storage_class" "ebs_couch" {
   metadata {
-    name = "ebs-couch"
+    name = local.couch_name
+
+    labels = {
+      "app.kubernetes.io/name"       = local.couch_name
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
   }
 
   storage_provisioner    = "kubernetes.io/aws-ebs"
@@ -19,33 +27,35 @@ resource "kubernetes_storage_class" "ebs_couch" {
 // k8s stateful set for couch
 resource "kubernetes_stateful_set" "couchdb" {
   metadata {
-    name = "couchdb"
+    name = local.couch_name
 
     labels = {
-      app = "couchdb"
+      "app.kubernetes.io/name"       = local.couch_name
+      "app.kubernetes.io/managed-by" = "terraform"
     }
   }
 
   spec {
-    service_name = "couchdb"
+    service_name = local.couch_name
     replicas     = 3
 
     selector {
       match_labels = {
-        app = "couchdb"
+        "app.kubernetes.io/name" = local.couch_name
       }
     }
 
     template {
       metadata {
         labels = {
-          app = "couchdb"
+          "app.kubernetes.io/name"    = local.couch_name
+          "app.kubernetes.io/version" = "2.3.1"
         }
       }
 
       spec {
         container {
-          name              = "couchdb"
+          name              = local.couch_name
           image             = "couchdb:2.3.1"
           image_pull_policy = "Always"
 
@@ -122,6 +132,11 @@ resource "kubernetes_stateful_set" "couchdb" {
     volume_claim_template {
       metadata {
         name = "config-storage"
+
+        labels = {
+          "app.kubernetes.io/name"       = "config-storage"
+          "app.kubernetes.io/managed-by" = "terraform"
+        }
       }
 
       spec {
@@ -139,6 +154,11 @@ resource "kubernetes_stateful_set" "couchdb" {
     volume_claim_template {
       metadata {
         name = "database-storage"
+
+        labels = {
+          "app.kubernetes.io/name"       = "database-storage"
+          "app.kubernetes.io/managed-by" = "terraform"
+        }
       }
 
       spec {
@@ -158,10 +178,11 @@ resource "kubernetes_stateful_set" "couchdb" {
 // create service for cluster-local access
 resource "kubernetes_service" "couchdb_cluster_ip" {
   metadata {
-    name      = "couchdb-cluster-ip"
-    namespace = "default"
+    name = local.couch_name
+
     labels = {
-      app = "couchdb"
+      "app.kubernetes.io/name"       = local.couch_name
+      "app.kubernetes.io/managed-by" = "terraform"
     }
   }
 
@@ -174,7 +195,7 @@ resource "kubernetes_service" "couchdb_cluster_ip" {
     }
 
     selector = {
-      app = "couchdb"
+      "app.kubernetes.io/name" = local.couch_name
     }
   }
 }
@@ -182,8 +203,13 @@ resource "kubernetes_service" "couchdb_cluster_ip" {
 // create ingress (loadbalancer)
 resource "kubernetes_ingress" "couchdb" {
   metadata {
-    name      = "couchdb"
-    namespace = "default"
+    name = local.couch_name
+
+    labels = {
+      "app.kubernetes.io/name"       = local.couch_name
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+
     annotations = {
       "kubernetes.io/ingress.class"           = "alb"
       "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
@@ -200,8 +226,9 @@ resource "kubernetes_ingress" "couchdb" {
       http {
         path {
           path = "/"
+
           backend {
-            service_name = "couchdb"
+            service_name = local.couch_name
             service_port = 5984
           }
         }
@@ -209,4 +236,3 @@ resource "kubernetes_ingress" "couchdb" {
     }
   }
 }
-*/
