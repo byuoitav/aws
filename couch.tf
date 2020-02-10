@@ -80,6 +80,7 @@ resource "kubernetes_stateful_set" "couchdb" {
               cpu    = "500m"
               memory = "500Mi"
             }
+
             limits {
               cpu    = "1"
               memory = "1Gi"
@@ -211,11 +212,14 @@ resource "kubernetes_ingress" "couchdb" {
     }
 
     annotations = {
-      "kubernetes.io/ingress.class"           = "alb"
-      "alb.ingress.kubernetes.io/scheme"      = "internet-facing"
-      "alb.ingress.kubernetes.io/target-type" = "ip"
-      "alb.ingress.kubernetes.io/subnets"     = join(",", module.acs.public_subnet_ids)
-      "alb.ingress.kubernetes.io/tags"        = "env=prd,data-sensitivity=internal,repo=https://github.com/byuoitav/aws"
+      "kubernetes.io/ingress.class"                    = "alb"
+      "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type"          = "ip"
+      "alb.ingress.kubernetes.io/subnets"              = join(",", module.acs.public_subnet_ids)
+      "alb.ingress.kubernetes.io/certificate-arn"      = aws_acm_certificate.av_cert.arn
+      "alb.ingress.kubernetes.io/listen-ports"         = "[\"HTTP\": 80}, {\"HTTPS\":443}]"
+      "alb.ingress.kubernetes.io/actions.ssl-redirect" = "{\"Type\": \"redirect\", \"RedirectConfig\": { \"Protocol\": \"HTTPS\", \"Port\": \"443\", \"StatusCode\": \"HTTP_301\"}}"
+      "alb.ingress.kubernetes.io/tags"                 = "env=prd,data-sensitivity=internal,repo=https://github.com/byuoitav/aws"
     }
   }
 

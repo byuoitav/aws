@@ -42,24 +42,6 @@ resource "aws_iam_openid_connect_provider" "eks" {
 data "aws_iam_policy_document" "eks_assume_role_policy" {
   statement {
     effect  = "Allow"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-
-    condition {
-      test     = "StringEquals"
-      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
-      values = [
-        "system:serviceaccount:default:external-dns"
-      ]
-    }
-
-    principals {
-      identifiers = [aws_iam_openid_connect_provider.eks.arn]
-      type        = "Federated"
-    }
-  }
-
-  statement {
-    effect  = "Allow"
     actions = ["sts:AssumeRole"]
     principals {
       identifiers = ["ec2.amazonaws.com"]
