@@ -212,14 +212,26 @@ resource "kubernetes_ingress" "couchdb" {
     }
 
     annotations = {
-      "kubernetes.io/ingress.class"                    = "alb"
-      "alb.ingress.kubernetes.io/scheme"               = "internet-facing"
-      "alb.ingress.kubernetes.io/target-type"          = "ip"
-      "alb.ingress.kubernetes.io/subnets"              = join(",", module.acs.public_subnet_ids)
-      "alb.ingress.kubernetes.io/certificate-arn"      = aws_acm_certificate.av_cert.arn
-      "alb.ingress.kubernetes.io/listen-ports"         = "[\"HTTP\": 80}, {\"HTTPS\":443}]"
-      "alb.ingress.kubernetes.io/actions.ssl-redirect" = "{\"Type\": \"redirect\", \"RedirectConfig\": { \"Protocol\": \"HTTPS\", \"Port\": \"443\", \"StatusCode\": \"HTTP_301\"}}"
-      "alb.ingress.kubernetes.io/tags"                 = "env=prd,data-sensitivity=internal,repo=https://github.com/byuoitav/aws"
+      "kubernetes.io/ingress.class"               = "alb"
+      "alb.ingress.kubernetes.io/scheme"          = "internet-facing"
+      "alb.ingress.kubernetes.io/target-type"     = "ip"
+      "alb.ingress.kubernetes.io/subnets"         = join(",", module.acs.public_subnet_ids)
+      "alb.ingress.kubernetes.io/certificate-arn" = aws_acm_certificate.av_cert.arn
+      "alb.ingress.kubernetes.io/listen-ports" = jsonencode([
+        { HTTP = 80 },
+        { HTTPS = 443 }
+      ])
+
+      "alb.ingress.kubernetes.io/actions.ssl-redirect" = jsonencode({
+        Type = "redirect"
+        RedirectConfig = {
+          Protocol   = "HTTPS"
+          Port       = "443"
+          StatusCode = "HTTP_301"
+        }
+      })
+
+      "alb.ingress.kubernetes.io/tags" = "env=prd,data-sensitivity=internal,repo=https://github.com/byuoitav/aws"
     }
   }
 
@@ -228,6 +240,15 @@ resource "kubernetes_ingress" "couchdb" {
       host = "db.av.byu.edu"
 
       http {
+        // redirect to https
+        path {
+          backend {
+            service_name = "ssl-redirect"
+            service_port = "use-annotation"
+          }
+        }
+
+        // forward to couchdb
         path {
           backend {
             service_name = local.couch_name
