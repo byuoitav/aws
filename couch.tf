@@ -87,6 +87,7 @@ resource "kubernetes_stateful_set" "couchdb" {
             }
           }
 
+          // TODO pick these
           // environment vars
           env {
             name  = "COUCHDB_USER"
@@ -98,9 +99,24 @@ resource "kubernetes_stateful_set" "couchdb" {
             value = "password"
           }
 
+          // clustering env vars
           env {
             name  = "COUCHDB_SECRET"
             value = "topSecret"
+          }
+
+          env {
+            name = "POD_NAME"
+            value_from {
+              field_ref {
+                field_path = "metadata.name"
+              }
+            }
+          }
+
+          env {
+            name  = "NODENAME"
+            value = "$(POD_NAME).service"
           }
 
           liveness_probe {
