@@ -11,3 +11,10 @@ resource "aws_ssm_parameter" "acm_av_cert_arn" {
   value     = aws_acm_certificate.av_cert.arn
   overwrite = true
 }
+
+resource "aws_ssm_parameter" "route53_zone_av" {
+  name      = "/route53/zone/av-id"
+  type      = "String"
+  value     = aws_route53_zone.av_zone.id
+  overwrite = true
+}
