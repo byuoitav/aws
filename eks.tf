@@ -76,7 +76,8 @@ resource "aws_eks_cluster" "av" {
   role_arn = aws_iam_role.eks_cluster.arn
 
   vpc_config {
-    subnet_ids = module.acs.private_subnet_ids
+    // https://docs.aws.amazon.com/eks/latest/userguide/network_reqs.html
+    subnet_ids = concat(module.acs.private_subnet_ids, module.acs.public_subnet_ids)
   }
 
   depends_on = [
