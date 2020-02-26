@@ -25,3 +25,10 @@ resource "aws_ssm_parameter" "route53_zone_av" {
   value     = aws_route53_zone.av_zone.id
   overwrite = true
 }
+
+resource "aws_ssm_parameter" "eks_lb_name" {
+  name      = "/eks/lb-name"
+  type      = "String"
+  value     = split("-", module.nginx_ingress_controller.lb_address)[0]
+  overwrite = true
+}
