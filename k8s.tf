@@ -4,5 +4,5 @@ provider "kubernetes" {
 
 module "nginx_ingress_controller" {
   source  = "byuoitav/nginx-ingress-controller/kubernetes"
-  version = "0.1.5"
+  version = "0.1.8"
 }
