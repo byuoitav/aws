@@ -1,3 +1,13 @@
+resource "aws_s3_bucket" "opa_bucket" {
+  bucket = "byuoitav-opa-policies"
+  acl    = "private"
+  tags = {
+    env              = "prd"
+    data-sensitivity = "confidential"
+    team             = "AV Engineering"
+  }
+}
+
 module "statefulset_dev" {
   source = "github.com/byuoitav/terraform//modules/kubernetes-statefulset"
 
