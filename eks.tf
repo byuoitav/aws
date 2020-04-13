@@ -51,8 +51,9 @@ data "aws_iam_policy_document" "eks_assume_role_policy" {
 }
 
 resource "aws_iam_role" "eks_node_group" {
-  name               = "eks-node-group-role"
-  assume_role_policy = data.aws_iam_policy_document.eks_assume_role_policy.json
+  name                 = "eks-node-group-role"
+  assume_role_policy   = data.aws_iam_policy_document.eks_assume_role_policy.json
+  permissions_boundary = module.acs.role_permissions_boundary.arn
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_group-AmazonEKSWorkerNodePolicy" {
@@ -68,6 +69,46 @@ resource "aws_iam_role_policy_attachment" "eks_node_group-AmazonEKS_CNI_Policy" 
 resource "aws_iam_role_policy_attachment" "eks_node_group-AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.eks_node_group.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_group-eks_nodes_read_opa_s3_bucket" {
+  policy_arn = aws_iam_policy.read_opa_s3.arn
+  role       = aws_iam_role.eks_node_group.name
+}
+
+resource "aws_iam_policy" "read_opa_s3" {
+  name   = "eks_nodes_read_opa_s3_bucket"
+  policy = <<EOT
+{
+   "Version":"2012-10-17",
+   "Statement":[
+      {
+         "Effect":"Allow",
+         "Action":[
+            "s3:ListAllMyBuckets"
+         ],
+         "Resource":"arn:aws:s3:::*"
+      },
+      {
+         "Effect":"Allow",
+         "Action":[
+            "s3:ListBucket",
+            "s3:GetBucketLocation"
+         ],
+         "Resource":"arn:aws:s3:::${aws_s3_bucket.opa_bucket.id}"
+      },
+      {
+         "Effect":"Allow",
+         "Action":[
+            "s3:GetObject",
+            "s3:GetObjectAcl"
+         ],
+         "Resource":"arn:aws:s3:::${aws_s3_bucket.opa_bucket.id}/*"
+      }
+   ]
+}
+EOT
+
 }
 
 // eks cluster
