@@ -111,10 +111,21 @@ EOT
 
 }
 
+resource "aws_cloudwatch_log_group" "eks_cluster_log_group" {
+  name              = "/aws/eks/av/cluster"
+  retention_in_days = 30
+}
+
 // eks cluster
 resource "aws_eks_cluster" "av" {
   name     = "av"
   role_arn = aws_iam_role.eks_cluster.arn
+
+  enabled_cluster_log_types = [
+    "api",
+    "controllerManager",
+    "scheduler",
+  ]
 
   vpc_config {
     // https://docs.aws.amazon.com/eks/latest/userguide/network_reqs.html
@@ -123,7 +134,8 @@ resource "aws_eks_cluster" "av" {
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster-AmazonEKSClusterPolicy,
-    aws_iam_role_policy_attachment.eks_cluster-AmazonEKSServicePolicy
+    aws_iam_role_policy_attachment.eks_cluster-AmazonEKSServicePolicy,
+    aws_cloudwatch_log_group.eks_cluster_log_group
   ]
 }
 

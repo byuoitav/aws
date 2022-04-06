@@ -36,6 +36,6 @@ resource "aws_ssm_parameter" "eks_lb_name" {
 resource "aws_ssm_parameter" "eks_lb_name_private" {
   name      = "/eks/lb-name-private"
   type      = "String"
-  value     = split("-", length(kubernetes_service.lb_private.load_balancer_ingress[0].ip) > 0 ? kubernetes_service.lb_private.load_balancer_ingress[0].ip : kubernetes_service.lb_private.load_balancer_ingress[0].hostname)[0]
+  value     = split("-", length(kubernetes_service.lb_private.status[0].load_balancer[0].ingress[0].ip) > 0 ? kubernetes_service.lb_private.status[0].load_balancer[0].ingress[0].ip : kubernetes_service.lb_private.status[0].load_balancer[0].ingress[0].hostname)[0]
   overwrite = true
 }

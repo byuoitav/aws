@@ -372,7 +372,8 @@ resource "kubernetes_ingress" "this" {
   count = length(local.public_urls) > 0 ? 1 : 0
 
   metadata {
-    name = local.name
+    //name = local.name
+    name = "opa-dev2"
 
     labels = {
       "app.kubernetes.io/name"       = local.name

@@ -1,10 +1,11 @@
 provider "kubernetes" {
-  host = aws_eks_cluster.av.endpoint
+  host        = aws_eks_cluster.av.endpoint
+  config_path = "~/.kube/config"
 }
 
 module "nginx_ingress_controller" {
   source              = "byuoitav/nginx-ingress-controller/kubernetes"
-  version             = "0.1.14"
+  version             = "0.2.1"
   controller_replicas = 3
   lb_annotations = {
     "service.beta.kubernetes.io/aws-load-balancer-type"                              = "nlb"
